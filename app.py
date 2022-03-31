@@ -58,15 +58,16 @@ col1.line_chart(df)
 #st.pyplot(fig)
 
 
-poly_n= col2.selectbox("Select value of n",[1,2,3,4,5,6,7,8,9], 3)
+poly_n= st.sidebar.selectbox("Polynomial function: Select value of n",[1,2,3,4,5,6,7,8,9], 3)
 model = np.poly1d(np.polyfit(df.index, df.Amplitude, poly_n))
 
 
 polyline=df.index.values.tolist()
 amplitude_fit= model(polyline)
 fig = plt.figure(figsize=(4, 2))
-plt.scatter(df.index, df.Amplitude)
-plt.plot(polyline, model(polyline), color='red')
+plt.scatter(df.index, df.Amplitude, c='k', label='Amplitude')
+plt.plot(polyline, model(polyline), color='red', label='Best fit')
+plt.legend(fontsize=4)
 col1.pyplot(fig)
 
 
