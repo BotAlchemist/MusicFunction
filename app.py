@@ -22,7 +22,7 @@ html_header='''
 '''
 
 st.markdown(html_header, unsafe_allow_html=True)
-
+st.sidebar.selectbox('Choose function', ['Polynomial'])
 
 df = pd.read_csv('sample.csv')
 x= df['Time'].values.tolist()
@@ -58,7 +58,7 @@ col1.line_chart(df)
 #st.pyplot(fig)
 
 
-poly_n= st.sidebar.selectbox("Polynomial function: Select value of n",[1,2,3,4,5,6,7,8,9], 3)
+poly_n= st.sidebar.selectbox(" Select value of n",[1,2,3,4,5,6,7,8,9], 3)
 model = np.poly1d(np.polyfit(df.index, df.Amplitude, poly_n))
 
 
