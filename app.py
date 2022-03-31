@@ -9,6 +9,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_squared_error
 
 st.set_page_config(layout='wide',page_title="Music")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -57,15 +58,16 @@ col1.line_chart(df)
 #st.pyplot(fig)
 
 
-poly_n= col2.selectbox("Select value of n",[1,2,3,4,5], 3)
+poly_n= col2.selectbox("Select value of n",[1,2,3,4,5,6,7,8,9], 3)
 model = np.poly1d(np.polyfit(df.index, df.Amplitude, poly_n))
-#col2.markdown('##')
-#col2.markdown('##')
-polyline = np.arange(df.index.min(), df.index.max(), 0.01)
+
+
+polyline=df.index.values.tolist()
+amplitude_fit= model(polyline)
 fig = plt.figure(figsize=(4, 2))
 plt.scatter(df.index, df.Amplitude)
 plt.plot(polyline, model(polyline), color='red')
-col2.pyplot(fig)
+col1.pyplot(fig)
 
 
 model= list(model)
@@ -80,5 +82,43 @@ elif poly_n== 4:
     equation = '''y = (({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4])
 elif poly_n== 5:
     equation = '''y = ( ({} x^5) + ({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4], model[5])
-st.latex(equation)
+elif poly_n== 6:
+    equation = '''y = ( ( {} x^6) +   {} x^5) + ({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4], model[5], model[6])
+elif poly_n== 7:
+    equation = '''y = ( (  {} x^7) +  {} x^6) +   {} x^5) + ({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4], model[5], model[6], model[7])
+elif poly_n== 8:
+    equation = '''y = ( ( {} x^8) +  {} x^7) +  {} x^6) +   {} x^5) + ({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4], model[5], model[6], model[7], model[8])
+elif poly_n== 9:
+    equation = '''y = ( ( {} x^9) + {} x^8) +  {} x^7) +  {} x^6) +   {} x^5) + ({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4], model[5], model[6], model[7], model[8], model[9])
+
+
+#st.latex(equation)
+
+
+
+rmse_list=[]
+ploy_list=[]
+for i_poly in range(1,10):
+    model = np.poly1d(np.polyfit(df.index, df.Amplitude, i_poly))
+    polyline=df.index.values.tolist()
+    amplitude_fit= model(polyline)
+    
+    df_fit= pd.DataFrame(columns= ['Time', 'Amplitude_fit', 'Amplitude'])
+    df_fit['Time']= polyline
+    df_fit['Amplitude_fit']= amplitude_fit
+    df_fit['Amplitude']= df['Amplitude'].values.tolist()
+    ploy_list.append(i_poly)
+    rmse_list.append(mean_squared_error(df_fit[['Amplitude']], df_fit[['Amplitude_fit']], squared=False))
+    
+    
+df_rmse= pd.DataFrame(columns= ['Poly n', 'RMSE'])
+df_rmse['Poly n']= ploy_list
+df_rmse['RMSE']= rmse_list
+
+best_rmse= df_rmse['RMSE'].min()
+best_poly= df_rmse[df_rmse['RMSE']== best_rmse]['Poly n'].values.tolist()[0]
+
+col2.table(df_rmse)
+col2.success( "Best polynomial fit: " +  str(best_poly))
+
 
