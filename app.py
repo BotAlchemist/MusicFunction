@@ -15,6 +15,11 @@ from sklearn.metrics import mean_squared_error
 st.set_page_config(layout='wide',page_title="Music")
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
+
+def convert_df(df):
+    return df.to_csv().encode('utf-8')
+
+
 html_header='''
 <div style= 'background-color: pink; padding:13px';>
 <h2 style= "color:black; text-align:center;"><b> Music- Best Curve fit</b></h2>
@@ -30,7 +35,7 @@ x= df['Time'].values.tolist()
 y= df['Amplitude'].values.tolist()
 
 
-col1, col2= st.beta_columns(2)
+col1, col2= st.columns(2)
 
 time_frame = col1.slider( 'Select time frame', min(x), max(x), (min(x) + 0.25, min(x) + 0.75))
 #time_frame = st.slider( 'Select time frame', 0, len(df), ( 0, len(df)))
@@ -160,6 +165,24 @@ else:
         
         col2.table(df_rmse)
         col2.success( "Best polynomial fit: " +  str(best_poly))
+        
+        model = np.poly1d(np.polyfit(df.index, df.Amplitude, best_poly))
+        polyline=df.index.values.tolist()
+        amplitude_fit= model(polyline)
+        df_fit= pd.DataFrame(columns= ['Time', 'Amplitude_fit', 'Amplitude'])
+        df_fit['Time']= polyline
+        df_fit['Amplitude_fit']= amplitude_fit
+        df_fit['Amplitude']= df['Amplitude'].values.tolist()
+        
+        df_fit = convert_df(df_fit)
+        col2.download_button(
+               "Download file",
+               df_fit,
+               "Curve_fit.csv",
+               "text/csv",
+               key='download-csv'
+            )
+    
 
 
     elif 'Sinusodial functions' in filter_function:
@@ -231,4 +254,16 @@ else:
             col2.latex( sin_equation)
         else:
             col2.latex( cos_equation)
+            
+            
+        
+        
+        df_fit = convert_df(df_fit)
+        col2.download_button(
+               "Download file",
+               df_fit,
+               "Curve_fit.csv",
+               "text/csv",
+               key='download-csv'
+            )
 
