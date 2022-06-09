@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from sklearn.metrics import mean_squared_error
+import math
 
 st.set_page_config(layout='wide',page_title="Music")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -75,7 +76,7 @@ col1.line_chart(df)
 #st.pyplot(fig)
 
 #list_of_functions=['M-M kinetics', 'L-W plot', 'Bateman function', 'Nuclear decay', 'Chemical reactions', 'Sinusodial functions', 'Polynomial functions', 'Logarithmic & Exponential', 'Continuous fibonacci', 'Logistic growth', 'Probability distribution']
-list_of_functions=[ 'Sinusodial functions', 'Polynomial functions']
+list_of_functions=[ 'Sinusodial functions', 'Sine waves','Polynomial functions']
 
 
 st.sidebar.markdown("### Select function")
@@ -266,4 +267,68 @@ else:
                "text/csv",
                key='download-csv'
             )
+        
+
+
+
+
+    elif 'Sine waves' in filter_function:
+
+        df= df.reset_index()
+        
+        ym= round(df['Amplitude'].mean(), 2)
+        xm= round(df['Time'].mean(), 2)
+        
+        y2= round(df['Amplitude'].iloc[-1], 2)
+        x2= round(df['Time'].iloc[-1], 2)
+        
+        y1= round(df['Amplitude'].iloc[0], 2)
+        x1= round(df['Time'].iloc[-0], 2)
+        
+        
+        
+        
+        x= np.array(df['Time'].values.tolist())
+        y= np.array(df['Amplitude'].values.tolist())
+        y_sin=[]
+        y_cos=[]
+        
+        for ix in x:
+            y_sin.append( math.sin(((ix - xm)*(3.14/2)/2)*(1/(x2-xm))) *(y2-ym) + ym) 
+            y_cos.append( math.sin(((ix - x1)*(3.14/2)/2)*(1/(x2-x1))) *(y2-y1) + y1)
+            
+        fig = plt.figure(figsize=(4, 2))
+        plt.scatter(x, y, c='k', label='Amplitude')
+        plt.plot(x, y_sin, '--', color ='blue', label ="Sine wave")
+        plt.plot(x, y_cos, '--', color ='green', label ="Cosine wave")
+        plt.legend(fontsize=4)
+        col1.pyplot(fig)
+        
+        
+        df_fit= df.copy()
+        df_fit['Sine wave']= y_sin
+        df_fit['Cosine wave']= y_cos
+        #col2.write(df_fit)
+        rmse_sin= mean_squared_error(df_fit[['Amplitude']], df_fit[['Sine wave']], squared=False)
+        rmse_cos= mean_squared_error(df_fit[['Amplitude']], df_fit[['Cosine wave']], squared=False)
+        
+        
+        df_rmse= pd.DataFrame(columns= ['Wave equation', 'RMSE'])
+        df_rmse['Wave equation']= ['Sine wave', 'Cosine wave']
+        df_rmse['RMSE']= [rmse_sin, rmse_cos]
+        
+        best_rmse= df_rmse['RMSE'].min()
+        best_wave= df_rmse[df_rmse['RMSE']== best_rmse]['Wave equation'].values.tolist()[0]
+        
+        col2.table(df_rmse)
+        col2.success( "Best Wave equation: " +  str(best_wave))
+        
+        sine_eq= '''y= sin[(x- {}) (3.14/2) ( 1/({}-{}))]({}-{}) + {}  '''.format(xm, x2, xm, y2, ym, ym)
+        #col2.latex(sine_eq)
+        if best_wave== 'Sine wave':
+            col2.latex( sine_eq)
+        else:
+            col2.latex( sine_eq)
+        
+        
 
