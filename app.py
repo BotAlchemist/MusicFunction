@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.io.wavfile import write
 from sklearn.metrics import mean_squared_error
 import math
 
@@ -32,6 +33,7 @@ st.markdown(html_header, unsafe_allow_html=True)
 
 
 df = pd.read_csv('sample.csv')
+df_original= df.copy()
 x= df['Time'].values.tolist()
 y= df['Amplitude'].values.tolist()
 
@@ -175,6 +177,8 @@ else:
         df_fit['Amplitude_fit']= amplitude_fit
         df_fit['Amplitude']= df['Amplitude'].values.tolist()
         
+        df_result= df_fit.copy()
+        
         df_fit = convert_df(df_fit)
         col2.download_button(
                "Download file",
@@ -183,7 +187,64 @@ else:
                "text/csv",
                key='download-csv'
             )
-    
+        
+        
+        
+        #df_original['Frequency_fit']= df_original['Amplitude']
+        
+        #st.write(df_original)
+        df_result= df_result.drop('Amplitude', axis=1)
+        df_result=  pd.merge(df_original, df_result, how='left', on=['Time'])
+        df_result['Amplitude_fit'].fillna(df_result.Amplitude, inplace=True)
+        #st.write(df_result)
+        
+        
+        
+        
+        
+        amplitude = 4096*2 #arbitrary value
+        duration=0.01161 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
+        samplerate = 44100
+        original_freq= df_original['Amplitude'].values.tolist()
+        fit_freq= df_result['Amplitude_fit'].values.tolist()
+        
+        song=[]
+        p = 0
+        for note in original_freq:
+            t = np.linspace(0, duration, int(samplerate * duration))
+            wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
+            song.append(wave)
+            p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
+
+        song = np.concatenate(song) 
+        data = song.astype(np.int16)
+        data = data * (16300/np.max(data))
+        write('sample_original.wav', samplerate, data.astype(np.int16))
+        
+        
+        
+        song=[]
+        p = 0
+        for note in fit_freq:
+            t = np.linspace(0, duration, int(samplerate * duration))
+            wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
+            song.append(wave)
+            p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
+
+        song = np.concatenate(song) 
+        #song=np.array([x*2 for x in song]) 
+        data = song.astype(np.int16)
+        data = data * (16300/np.max(data))
+        write('sample_fit.wav', samplerate, data.astype(np.int16))
+        
+        audio_file = open('sample_original.wav', 'rb')
+        audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format='audio/wav')
+        
+        audio_file_fit = open('sample_fit.wav', 'rb')
+        audio_bytes_fit = audio_file_fit.read()
+        st.audio(audio_bytes_fit, format='audio/wav')
+            
 
 
     elif 'Sinusodial functions' in filter_function:
