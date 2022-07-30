@@ -33,7 +33,7 @@ html_header='''
 st.markdown(html_header, unsafe_allow_html=True)
 
 
-i_page= st.sidebar.selectbox("Page", ['Curve fitting', 'Canvas'])
+i_page= st.sidebar.selectbox("Page", ['Curve fitting', 'Canvas', 'Generate Music'])
 
 if i_page == 'Curve fitting':
     df = pd.read_csv('sample.csv')
@@ -432,5 +432,117 @@ elif i_page == 'Canvas':
         st.dataframe(objects)
 
     
-            
+elif i_page == 'Generate Music':
+    #http://www.soundofindia.com/showarticle.asp?in_article_id=-446619640 
+    S_freq= st.sidebar.text_input("Select the frequency for Sa", '100')
+    S_freq= float(S_freq)
+    SS_freq= S_freq * 2
+    
+    G_freq= (5* S_freq)/4
+    if G_freq > SS_freq:
+        G_freq= G_freq/2
+    st.sidebar.text_input("G freq: ", G_freq)
+    
+    P_freq= (6* G_freq)/5
+    if P_freq > SS_freq:
+        GPfreq= P_freq/2
+    st.sidebar.text_input("P_freq: ", P_freq)
+    
+    N_freq= (5* P_freq)/4
+    if N_freq > SS_freq:
+        N_freq= N_freq/2
+    st.sidebar.text_input("N_freq: ", N_freq)
+    
+    R_freq= (6* N_freq)/5
+    if R_freq > SS_freq:
+        R_freq= R_freq/2
+    st.sidebar.text_input("R_freq: ", R_freq)
+    
+    m_freq= (4* SS_freq)/6
+    st.sidebar.text_input("m_freq: ", m_freq)
+    
+    D_freq= (5* SS_freq)/6
+    st.sidebar.text_input("D_freq: ", D_freq)
+    
+    g_freq= (6* S_freq)/5
+    st.sidebar.text_input("g_freq: ", g_freq)
+    
+    n_freq= (3* g_freq)/2
+    st.sidebar.text_input("n_freq: ", n_freq)
+    
+    M_freq= (3* N_freq)/2
+    if M_freq > SS_freq:
+        M_freq= M_freq/2
+    st.sidebar.text_input("M_freq: ", M_freq)
+    
+    r_freq= (4* m_freq)/5
+    st.sidebar.text_input("r_freq: ", r_freq)
+    
+    
+    ##################################### PLot music graph #####################
+    fig = plt.figure(figsize = (7, 7))
+    plt.axhline(y = S_freq, color = 'lime', linestyle = '-', label = "Sa")
+    plt.axhline(y = r_freq, color = 'indianred', linestyle = '-', label = "re")
+    plt.axhline(y = R_freq, color = 'darkred', linestyle = '-', label = "Re")
+    plt.axhline(y = g_freq, color = 'coral', linestyle = '-', label = "ga")
+    plt.axhline(y = G_freq, color = 'darkorange', linestyle = '-', label = "Ga")
+    plt.axhline(y = m_freq, color = 'yellowgreen', linestyle = '-', label = "ma")
+    plt.axhline(y = M_freq, color = 'darkolivegreen', linestyle = '-', label = "Ma")
+    plt.axhline(y = P_freq, color = 'gold', linestyle = '-', label = "Pa")
+    #plt.axhline(y = d_freq, color = 'turquoise', linestyle = '-', label = "dha")
+    plt.axhline(y = D_freq, color = 'teal', linestyle = '-', label = "Dha")
+    plt.axhline(y = n_freq, color = 'hotpink', linestyle = '-', label = "ni")
+    plt.axhline(y = N_freq, color = 'crimson', linestyle = '-', label = "Ni")
+    plt.axhline(y = SS_freq, color = 'darkgreen', linestyle = '-', label = "SS")
+    
+    # adding axis labels    
+    plt.xlabel('x - axis')
+    plt.ylabel('y - axis')
+      
+    # plotting the legend
+    plt.legend(bbox_to_anchor = (1.0, 1), loc="center left", borderaxespad=0)
+    
+    st.pyplot(fig) 
+    
+    
+    if st.button("Generate music"):
+        #note_list= [S_freq, r_freq, G_freq, m_freq, P_freq, D_freq, n_freq, SS_freq]
+        note_list= [S_freq, r_freq, G_freq, S_freq, r_freq, G_freq, m_freq, G_freq]
+        notelist_final=[]
+        for i_note in note_list:
+            for i in range(10):
+                notelist_final.append(i_note)
+                
+        
+        
+        
+        amplitude = 4096*3 #arbitrary value
+        duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
+        samplerate = 44100
+        original_freq= notelist_final
+        # fit_freq= df_result['Amplitude_fit'].values.tolist()
+        
+        song=[]
+        p = 0
+        for note in original_freq:
+            t = np.linspace(0, duration, int(samplerate * duration))
+            wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
+            song.append(wave)
+            p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
+    
+        song = np.concatenate(song) 
+        data = song.astype(np.int16)
+        data = data * (16300/np.max(data))
+        write('generate_music.wav', samplerate, data.astype(np.int16))
+        
+        audio_file = open('generate_music.wav', 'rb')
+        audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format='audio/wav')
+    
+    
+    
+    
+
+
+          
     
