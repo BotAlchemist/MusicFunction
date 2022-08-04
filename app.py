@@ -434,7 +434,7 @@ elif i_page == 'Canvas':
     
 elif i_page == 'Generate Music':
     #http://www.soundofindia.com/showarticle.asp?in_article_id=-446619640 
-    S_freq= st.sidebar.text_input("Select the frequency for Sa", '100')
+    S_freq= st.sidebar.text_input("Select the frequency for S", '100')
     S_freq= float(S_freq)
     SS_freq= S_freq * 2
     
@@ -480,6 +480,9 @@ elif i_page == 'Generate Music':
     
     
     ##################################### PLot music graph #####################
+    
+    mus1, mus2= st.columns(2)
+    
     fig = plt.figure(figsize = (7, 7))
     plt.axhline(y = S_freq, color = 'lime', linestyle = '-', label = "Sa")
     plt.axhline(y = r_freq, color = 'indianred', linestyle = '-', label = "re")
@@ -502,42 +505,61 @@ elif i_page == 'Generate Music':
     # plotting the legend
     plt.legend(bbox_to_anchor = (1.0, 1), loc="center left", borderaxespad=0)
     
-    st.pyplot(fig) 
+    mus1.pyplot(fig) 
     
     
-    if st.button("Generate music"):
-        #note_list= [S_freq, r_freq, G_freq, m_freq, P_freq, D_freq, n_freq, SS_freq]
-        note_list= [S_freq, r_freq, G_freq, S_freq, r_freq, G_freq, m_freq, G_freq]
-        notelist_final=[]
-        for i_note in note_list:
-            for i in range(10):
-                notelist_final.append(i_note)
+    
+    i_note_list= mus2.multiselect('Generate sequence', ['Sa', 're', 'Re', 'ga', 'Ga', 'ma', 'Ma', 'Pa', 'Dha', 'ni', 'Ni', 'SSa'])
+    if len(i_note_list) >0 :
+        
+        if mus2.button("Generate music"):
+            
+            notes_freq_dict={
+                'Sa': S_freq, 're': r_freq, 
+                'Re': R_freq, 'ga': g_freq, 'Ga': G_freq, 
+                'ma': m_freq, 'Ma': M_freq, 
+                'Pa': P_freq, 'Dha': D_freq, 
+                'ni': n_freq, 'Ni': N_freq, 'SSa': SS_freq
                 
+                }
+            
+            note_list=[]
+            for i_note in i_note_list:
+                note_list.append(notes_freq_dict[i_note])
+                
+            
+            #note_list= [S_freq, r_freq, G_freq, m_freq, P_freq, D_freq, n_freq, SS_freq]
+            #note_list= [S_freq, r_freq, G_freq, S_freq, r_freq, G_freq, m_freq, G_freq]
+            notelist_final=[]
+            for i_note in note_list:
+                for i in range(10):
+                    notelist_final.append(i_note)
+                    
+            
+            
+            
+            amplitude = 4096*3 #arbitrary value
+            duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
+            samplerate = 44100
+            original_freq= notelist_final
+            # fit_freq= df_result['Amplitude_fit'].values.tolist()
+            
+            song=[]
+            p = 0
+            for note in original_freq:
+                t = np.linspace(0, duration, int(samplerate * duration))
+                wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
+                song.append(wave)
+                p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
         
-        
-        
-        amplitude = 4096*3 #arbitrary value
-        duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
-        samplerate = 44100
-        original_freq= notelist_final
-        # fit_freq= df_result['Amplitude_fit'].values.tolist()
-        
-        song=[]
-        p = 0
-        for note in original_freq:
-            t = np.linspace(0, duration, int(samplerate * duration))
-            wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
-            song.append(wave)
-            p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
-    
-        song = np.concatenate(song) 
-        data = song.astype(np.int16)
-        data = data * (16300/np.max(data))
-        write('generate_music.wav', samplerate, data.astype(np.int16))
-        
-        audio_file = open('generate_music.wav', 'rb')
-        audio_bytes = audio_file.read()
-        st.audio(audio_bytes, format='audio/wav')
+            song = np.concatenate(song) 
+            data = song.astype(np.int16)
+            data = data * (16300/np.max(data))
+            write('generate_music.wav', samplerate, data.astype(np.int16))
+            
+            audio_file = open('generate_music.wav', 'rb')
+            audio_bytes = audio_file.read()
+            mus2.audio(audio_bytes, format='audio/wav')
     
     
     
