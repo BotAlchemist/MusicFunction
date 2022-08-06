@@ -3,3 +3,5 @@ pandas
 matplotlib
 scikit-learn
 streamlit-drawable-canvas
+plotly
+streamlit-option-menu

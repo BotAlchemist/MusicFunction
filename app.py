@@ -7,13 +7,17 @@ Created on Mon Feb 21 10:14:57 2022
 
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas
+from streamlit_option_menu import option_menu
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.io.wavfile import write
+from scipy import signal
 from sklearn.metrics import mean_squared_error
 import math
+import plotly.express as px
+
 
 st.set_page_config(layout='wide',page_title="Music")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -25,15 +29,19 @@ def convert_df(df):
 
 html_header='''
 <div style= 'background-color: pink; padding:13px';>
-<h2 style= "color:black; text-align:center;"><b> Music- Best Curve fit</b></h2>
+<h2 style= "color:black; text-align:center;"><b> Gannygit</b></h2>
 </div>
 <br>
 '''
 
-st.markdown(html_header, unsafe_allow_html=True)
+#st.sidebar.markdown(html_header, unsafe_allow_html=True)
 
 
-i_page= st.sidebar.selectbox("Page", ['Curve fitting', 'Canvas', 'Generate Music'])
+#i_page= st.sidebar.selectbox("Page", ['Curve fitting', 'Canvas', 'Generate Music'])
+
+with st.sidebar:
+    i_page= option_menu('Gannygit', ['Curve fitting', 'Canvas', 'Generate Music'],
+                        default_index=0, icons=['gear', 'paperclip','music-note-list' ], menu_icon= 'cast')
 
 if i_page == 'Curve fitting':
     df = pd.read_csv('sample.csv')
@@ -434,114 +442,127 @@ elif i_page == 'Canvas':
     
 elif i_page == 'Generate Music':
     #http://www.soundofindia.com/showarticle.asp?in_article_id=-446619640 
-    S_freq= st.sidebar.text_input("Select the frequency for S", '100')
-    S_freq= float(S_freq)
-    SS_freq= S_freq * 2
     
-    G_freq= (5* S_freq)/4
-    if G_freq > SS_freq:
-        G_freq= G_freq/2
-    st.sidebar.text_input("G freq: ", G_freq)
-    
-    P_freq= (6* G_freq)/5
-    if P_freq > SS_freq:
-        GPfreq= P_freq/2
-    st.sidebar.text_input("P_freq: ", P_freq)
-    
-    N_freq= (5* P_freq)/4
-    if N_freq > SS_freq:
-        N_freq= N_freq/2
-    st.sidebar.text_input("N_freq: ", N_freq)
-    
-    R_freq= (6* N_freq)/5
-    if R_freq > SS_freq:
-        R_freq= R_freq/2
-    st.sidebar.text_input("R_freq: ", R_freq)
-    
-    m_freq= (4* SS_freq)/6
-    st.sidebar.text_input("m_freq: ", m_freq)
-    
-    D_freq= (5* SS_freq)/6
-    st.sidebar.text_input("D_freq: ", D_freq)
-    
-    g_freq= (6* S_freq)/5
-    st.sidebar.text_input("g_freq: ", g_freq)
-    
-    n_freq= (3* g_freq)/2
-    st.sidebar.text_input("n_freq: ", n_freq)
-    
-    M_freq= (3* N_freq)/2
-    if M_freq > SS_freq:
-        M_freq= M_freq/2
-    st.sidebar.text_input("M_freq: ", M_freq)
-    
-    r_freq= (4* m_freq)/5
-    st.sidebar.text_input("r_freq: ", r_freq)
-    
-    
-    ##################################### PLot music graph #####################
-    
-    mus1, mus2= st.columns(2)
-    
-    fig = plt.figure(figsize = (7, 7))
-    plt.axhline(y = S_freq, color = 'lime', linestyle = '-', label = "Sa")
-    plt.axhline(y = r_freq, color = 'indianred', linestyle = '-', label = "re")
-    plt.axhline(y = R_freq, color = 'darkred', linestyle = '-', label = "Re")
-    plt.axhline(y = g_freq, color = 'coral', linestyle = '-', label = "ga")
-    plt.axhline(y = G_freq, color = 'darkorange', linestyle = '-', label = "Ga")
-    plt.axhline(y = m_freq, color = 'yellowgreen', linestyle = '-', label = "ma")
-    plt.axhline(y = M_freq, color = 'darkolivegreen', linestyle = '-', label = "Ma")
-    plt.axhline(y = P_freq, color = 'gold', linestyle = '-', label = "Pa")
-    #plt.axhline(y = d_freq, color = 'turquoise', linestyle = '-', label = "dha")
-    plt.axhline(y = D_freq, color = 'teal', linestyle = '-', label = "Dha")
-    plt.axhline(y = n_freq, color = 'hotpink', linestyle = '-', label = "ni")
-    plt.axhline(y = N_freq, color = 'crimson', linestyle = '-', label = "Ni")
-    plt.axhline(y = SS_freq, color = 'darkgreen', linestyle = '-', label = "SS")
-    
-    # adding axis labels    
-    plt.xlabel('x - axis')
-    plt.ylabel('y - axis')
-      
-    # plotting the legend
-    plt.legend(bbox_to_anchor = (1.0, 1), loc="center left", borderaxespad=0)
-    
-    mus1.pyplot(fig) 
-    
-    
-    
-    i_note_list= mus2.multiselect('Generate sequence', ['Sa', 're', 'Re', 'ga', 'Ga', 'ma', 'Ma', 'Pa', 'Dha', 'ni', 'Ni', 'SSa'])
-    if len(i_note_list) >0 :
+    def get_note_freq(S_freq):
+        octave= ['S','r', 'R', 'g', 'G', 'm', 'M', 'P', 'd', 'D', 'n', 'N' ,'S^']
+        note_freq= {octave[i]: S_freq * pow (2, (i/12)) for i in range(len(octave))}
+        note_freq['']= 0.0
+        #note_freq['S^']= 2* S_freq
         
-        if mus2.button("Generate music"):
-            
-            notes_freq_dict={
-                'Sa': S_freq, 're': r_freq, 
-                'Re': R_freq, 'ga': g_freq, 'Ga': G_freq, 
-                'ma': m_freq, 'Ma': M_freq, 
-                'Pa': P_freq, 'Dha': D_freq, 
-                'ni': n_freq, 'Ni': N_freq, 'SSa': SS_freq
-                
-                }
+        return note_freq
+    
+    
+    S_freq= st.sidebar.text_input("Select base frequency", '100')
+    S_freq= float(S_freq)
+    
+    beats_per_note= st.sidebar.slider("Beats per note", 1,5)
+    poly_n= st.sidebar.selectbox(" Select value of n",[0,1,2,3,4,5,6,7,8,9], 3)
+    
+    notes_freq_dict= get_note_freq(S_freq)
+    
+    if 'user_input_sequence' not in st.session_state:
+        st.session_state['user_input_sequence']= []
+    
+    mus1, mus2, mus3, mus4, mus5, mus6, mus7, mus8, mus9, mus10, mus11, mus12, mus13, mus14, mus15, mus16= st.columns(16)
+    if mus1.button('स '):
+        st.session_state['user_input_sequence'].append('S')
+        
+    if mus2.button('रे॒'):
+        st.session_state['user_input_sequence'].append('r')
+        
+    if mus3.button('रे '):
+        st.session_state['user_input_sequence'].append('R')
+        
+    if mus4.button('ग॒ '):
+        st.session_state['user_input_sequence'].append('g')
+        
+    if mus5.button('ग '):
+        st.session_state['user_input_sequence'].append('G')
+        
+    if mus6.button('म'):
+        st.session_state['user_input_sequence'].append('m')
+        
+    if mus7.button('म॑'):
+        st.session_state['user_input_sequence'].append('M')
+        
+    if mus8.button('प'):
+        st.session_state['user_input_sequence'].append('P')
+        
+    if mus9.button('ध॒'):
+        st.session_state['user_input_sequence'].append('d')
+        
+    if mus10.button('ध'):
+        st.session_state['user_input_sequence'].append('D')
+        
+    if mus11.button('नि॒'):
+        st.session_state['user_input_sequence'].append('n')
+        
+    if mus12.button('नि'):
+        st.session_state['user_input_sequence'].append('N')
+        
+    if mus13.button('सं'):
+        st.session_state['user_input_sequence'].append('S^')
+    
+    if mus14.button(' '):
+        st.session_state['user_input_sequence'].append('''''')
+        
+    if mus15.button('Del'):
+        st.session_state['user_input_sequence'].pop()
+        
+    if mus16.button('Clear all'):
+        st.session_state['user_input_sequence'].clear()
+        
+       
+    st.text_input('Note sequence', st.session_state['user_input_sequence'])
+    
+    
+    
+    if len(st.session_state['user_input_sequence']) >0 :
+        if st.sidebar.checkbox("Real time generate music"):
             
             note_list=[]
-            for i_note in i_note_list:
+            
+            for i_note in st.session_state['user_input_sequence']:
                 note_list.append(notes_freq_dict[i_note])
                 
-            
-            #note_list= [S_freq, r_freq, G_freq, m_freq, P_freq, D_freq, n_freq, SS_freq]
-            #note_list= [S_freq, r_freq, G_freq, S_freq, r_freq, G_freq, m_freq, G_freq]
+                
             notelist_final=[]
+            note_name_list_final=[]
             for i_note in note_list:
-                for i in range(10):
+                for i in range(beats_per_note):
                     notelist_final.append(i_note)
-                    
             
+                
+                    
+            df_music_generate = pd.Series(notelist_final, index =[i_ for i_ in range(len(notelist_final))])
+            #df_music_generate = df_music_generate.interpolate(method='cubic')
+            #df_music_generate= df_music_generate.rolling(beats_per_note).mean()
+            
+            
+            if poly_n != 0:
+                model = np.poly1d(np.polyfit(df_music_generate.index.tolist(), df_music_generate.tolist(), poly_n))
+                polyline=df_music_generate.index.values.tolist()
+                y_val= model(polyline)
+            else:
+                y_val= df_music_generate.tolist()
+            
+
+            x_val= df_music_generate.index.tolist()
+            
+            
+            
+            
+            ######################################## plot graph ################################
+            fig= px.line(x= x_val, y= y_val, width= 900, height=400, template="plotly_white")
+            fig.update_layout(xaxis_title="Time", yaxis_title= "frequency" )
+            fig.update_traces(line=dict( color="Red", width=3.5))
+            st.plotly_chart(fig)
             
             
             amplitude = 4096*3 #arbitrary value
             duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
             samplerate = 44100
-            original_freq= notelist_final
+            original_freq= y_val #notelist_final
             # fit_freq= df_result['Amplitude_fit'].values.tolist()
             
             song=[]
@@ -559,7 +580,136 @@ elif i_page == 'Generate Music':
             
             audio_file = open('generate_music.wav', 'rb')
             audio_bytes = audio_file.read()
-            mus2.audio(audio_bytes, format='audio/wav')
+            st.audio(audio_bytes, format='audio/wav')
+    
+    
+    #st.write(get_note_freq(S_freq))
+    
+    
+    # SS_freq= S_freq * 2
+    
+    # G_freq= (5* S_freq)/4
+    # if G_freq > SS_freq:
+    #     G_freq= G_freq/2
+    # st.sidebar.text_input("G freq: ", G_freq)
+    
+    # P_freq= (6* G_freq)/5
+    # if P_freq > SS_freq:
+    #     GPfreq= P_freq/2
+    # st.sidebar.text_input("P_freq: ", P_freq)
+    
+    # N_freq= (5* P_freq)/4
+    # if N_freq > SS_freq:
+    #     N_freq= N_freq/2
+    # st.sidebar.text_input("N_freq: ", N_freq)
+    
+    # R_freq= (6* N_freq)/5
+    # if R_freq > SS_freq:
+    #     R_freq= R_freq/2
+    # st.sidebar.text_input("R_freq: ", R_freq)
+    
+    # m_freq= (4* SS_freq)/6
+    # st.sidebar.text_input("m_freq: ", m_freq)
+    
+    # D_freq= (5* SS_freq)/6
+    # st.sidebar.text_input("D_freq: ", D_freq)
+    
+    # g_freq= (6* S_freq)/5
+    # st.sidebar.text_input("g_freq: ", g_freq)
+    
+    # n_freq= (3* g_freq)/2
+    # st.sidebar.text_input("n_freq: ", n_freq)
+    
+    # M_freq= (3* N_freq)/2
+    # if M_freq > SS_freq:
+    #     M_freq= M_freq/2
+    # st.sidebar.text_input("M_freq: ", M_freq)
+    
+    # r_freq= (4* m_freq)/5
+    # st.sidebar.text_input("r_freq: ", r_freq)
+    
+    
+    ##################################### PLot music graph #####################
+    
+    #mus1, mus2= st.columns(2)
+    
+    # fig = plt.figure(figsize = (7, 7))
+    # plt.axhline(y = S_freq, color = 'lime', linestyle = '-', label = "Sa")
+    # plt.axhline(y = r_freq, color = 'indianred', linestyle = '-', label = "re")
+    # plt.axhline(y = R_freq, color = 'darkred', linestyle = '-', label = "Re")
+    # plt.axhline(y = g_freq, color = 'coral', linestyle = '-', label = "ga")
+    # plt.axhline(y = G_freq, color = 'darkorange', linestyle = '-', label = "Ga")
+    # plt.axhline(y = m_freq, color = 'yellowgreen', linestyle = '-', label = "ma")
+    # plt.axhline(y = M_freq, color = 'darkolivegreen', linestyle = '-', label = "Ma")
+    # plt.axhline(y = P_freq, color = 'gold', linestyle = '-', label = "Pa")
+    # #plt.axhline(y = d_freq, color = 'turquoise', linestyle = '-', label = "dha")
+    # plt.axhline(y = D_freq, color = 'teal', linestyle = '-', label = "Dha")
+    # plt.axhline(y = n_freq, color = 'hotpink', linestyle = '-', label = "ni")
+    # plt.axhline(y = N_freq, color = 'crimson', linestyle = '-', label = "Ni")
+    # plt.axhline(y = SS_freq, color = 'darkgreen', linestyle = '-', label = "SS")
+    
+    # # adding axis labels    
+    # plt.xlabel('x - axis')
+    # plt.ylabel('y - axis')
+      
+    # # plotting the legend
+    # plt.legend(bbox_to_anchor = (1.0, 1), loc="center left", borderaxespad=0)
+    
+    # mus1.pyplot(fig) 
+    
+    
+    #st.text_input('Write sequence', "")
+    # i_note_list= mus2.multiselect('Generate sequence', ['Sa', 're', 'Re', 'ga', 'Ga', 'ma', 'Ma', 'Pa', 'Dha', 'ni', 'Ni', 'SSa'])
+    # if len(i_note_list) >0 :
+        
+    #     if mus2.button("Generate music"):
+            
+    #         notes_freq_dict={
+    #             'Sa': S_freq, 're': r_freq, 
+    #             'Re': R_freq, 'ga': g_freq, 'Ga': G_freq, 
+    #             'ma': m_freq, 'Ma': M_freq, 
+    #             'Pa': P_freq, 'Dha': D_freq, 
+    #             'ni': n_freq, 'Ni': N_freq, 'SSa': SS_freq
+                
+    #             }
+            
+    #         note_list=[]
+    #         for i_note in i_note_list:
+    #             note_list.append(notes_freq_dict[i_note])
+                
+            
+    #         #note_list= [S_freq, r_freq, G_freq, m_freq, P_freq, D_freq, n_freq, SS_freq]
+    #         #note_list= [S_freq, r_freq, G_freq, S_freq, r_freq, G_freq, m_freq, G_freq]
+    #         notelist_final=[]
+    #         for i_note in note_list:
+    #             for i in range(10):
+    #                 notelist_final.append(i_note)
+                    
+            
+            
+            
+    #         amplitude = 4096*3 #arbitrary value
+    #         duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
+    #         samplerate = 44100
+    #         original_freq= notelist_final
+    #         # fit_freq= df_result['Amplitude_fit'].values.tolist()
+            
+    #         song=[]
+    #         p = 0
+    #         for note in original_freq:
+    #             t = np.linspace(0, duration, int(samplerate * duration))
+    #             wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
+    #             song.append(wave)
+    #             p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
+        
+    #         song = np.concatenate(song) 
+    #         data = song.astype(np.int16)
+    #         data = data * (16300/np.max(data))
+    #         write('generate_music.wav', samplerate, data.astype(np.int16))
+            
+    #         audio_file = open('generate_music.wav', 'rb')
+    #         audio_bytes = audio_file.read()
+    #         mus2.audio(audio_bytes, format='audio/wav')
     
     
     
