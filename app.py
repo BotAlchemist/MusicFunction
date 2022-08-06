@@ -456,7 +456,7 @@ elif i_page == 'Generate Music':
     S_freq= float(S_freq)
     
     beats_per_note= st.sidebar.slider("Beats per note", 1,5)
-    poly_n= st.sidebar.selectbox(" Select value of n",[0,1,2,3,4,5,6,7,8,9], 3)
+    poly_n= st.sidebar.selectbox(" Smoothening level",[0,1,2,3,4,5,6,7,8,9], 0)
     
     notes_freq_dict= get_note_freq(S_freq)
     
