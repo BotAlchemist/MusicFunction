@@ -18,6 +18,8 @@ from sklearn.metrics import mean_squared_error
 import math
 import plotly.express as px
 
+from Bezier import Bezier
+
 
 st.set_page_config(layout='wide',page_title="Music")
 st.set_option('deprecation.showPyplotGlobalUse', False)
@@ -40,8 +42,8 @@ html_header='''
 #i_page= st.sidebar.selectbox("Page", ['Curve fitting', 'Canvas', 'Generate Music'])
 
 with st.sidebar:
-    i_page= option_menu('Gannygit', ['Curve fitting', 'Canvas', 'Generate Music'],
-                        default_index=0, icons=['gear', 'paperclip','music-note-list' ], menu_icon= 'cast')
+    i_page= option_menu('Gannygit', ['Curve fitting', 'Canvas', 'Generate Music', 'Bezier Curve'],
+                        default_index=0, icons=['gear', 'paperclip','music-note-list', 'bezier' ], menu_icon= 'cast')
 
 if i_page == 'Curve fitting':
     df = pd.read_csv('sample.csv')
@@ -257,6 +259,29 @@ if i_page == 'Curve fitting':
             audio_file_fit = open('sample_fit.wav', 'rb')
             audio_bytes_fit = audio_file_fit.read()
             st.audio(audio_bytes_fit, format='audio/wav')
+            
+            
+            #st.write( model(polyline))
+            
+            y_scaled=[]
+            x_scaled=[]
+            for x in range(len(amplitude_fit)):
+                #st.write(x)
+                #y= (({} x^4)  +({} x^3) + ({} x^2)  + ({} x) + ({})'''.format(model[0], model[1], model[2], model[3], model[4])
+                y= (model[0] * x**4)  + (model[1] * x**3 ) + (model[2]* x**2) + (model[3] * x**1) + model[4]
+                y_scaled.append(y)
+                x_scaled.append(x)
+                
+            fig = plt.figure(figsize=(4, 2))
+            #plt.scatter(x_scaled, df.Amplitude, c='k', label='Amplitude')
+            y_scaled = [float(i)/max(model(polyline)) for i in model(polyline)]
+            plt.plot(x_scaled, y_scaled, color='red', label='Scaled')
+            plt.legend(fontsize=4)
+            col1.pyplot(fig)
+            
+            st.write(2**5)
+                
+            
                 
     
     
@@ -443,6 +468,8 @@ elif i_page == 'Canvas':
 elif i_page == 'Generate Music':
     #http://www.soundofindia.com/showarticle.asp?in_article_id=-446619640 
     
+    
+    
     def get_note_freq(S_freq):
         octave= ['S','r', 'R', 'g', 'G', 'm', 'M', 'P', 'd', 'D', 'n', 'N' ,'S^']
         note_freq= {octave[i]: S_freq * pow (2, (i/12)) for i in range(len(octave))}
@@ -512,8 +539,9 @@ elif i_page == 'Generate Music':
     if mus16.button('Clear all'):
         st.session_state['user_input_sequence'].clear()
         
-       
-    st.text_input('Note sequence', st.session_state['user_input_sequence'])
+    
+    music1, music2= st.columns(2)
+    music1.text_input('Note sequence', st.session_state['user_input_sequence'])
     
     
     
@@ -553,12 +581,53 @@ elif i_page == 'Generate Music':
             
             
             ######################################## plot graph ################################
-            fig= px.line(x= x_val, y= y_val, width= 900, height=400, template="plotly_white")
+            fig= px.line(x= x_val, y= y_val, width= 500, height=400, template="plotly_white")
+            #fig= px.line(x= x_val, y= y_val,template="plotly_white")
             fig.update_layout(xaxis_title="Time", yaxis_title= "frequency" )
             fig.update_traces(line=dict( color="Red", width=3.5))
-            st.plotly_chart(fig)
+            music1.plotly_chart(fig)
             
             
+            ######################################## Code to edit the sequence ###########################
+            df_edit_seq= pd.DataFrame( columns= ['Time', 'Frequency'])
+            df_edit_seq['Time']= x_val
+            df_edit_seq['Frequency']= y_val
+            i_splice= music2.slider(
+                 'Selection',
+                 min(x_val), max(x_val), (0, 1), step=1)
+            
+            df_edit_seq_small= df_edit_seq[(df_edit_seq['Time'] >= i_splice[0]) & (df_edit_seq['Time'] <=i_splice[1] )]
+            
+            
+            fig= px.line( x= df_edit_seq['Time'], y= df_edit_seq['Frequency'], width= 500, height=400, template="plotly_white")
+            fig.update_layout(xaxis_title="Time", yaxis_title= "frequency" ,
+                              shapes=[
+                                dict(
+                                    type="rect",
+                                    xref="x",
+                                    yref="y",
+                                    x0= i_splice[0],
+                                    y0=min(y_val),
+                                    x1=i_splice[1],
+                                    y1=max(y_val),
+                                    fillcolor="lightgray",
+                                    opacity=0.4,
+                                    line_width=0,
+                                    layer="below"
+                                )]
+                              
+                              )
+            fig.update_traces(line=dict( color="BLue", width=3.5))
+            music2.plotly_chart(fig)
+            
+            fig= px.line( x= df_edit_seq_small['Time'], y= df_edit_seq_small['Frequency'], width= 500, height=400, template="plotly_white")
+            fig.update_layout(xaxis_title="Time", yaxis_title= "frequency" )
+            fig.update_traces(line=dict( color="BLue", width=3.5))
+            music2.plotly_chart(fig)
+                        
+            
+            
+            ############################################ Code to play the music ################################
             amplitude = 4096*3 #arbitrary value
             duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
             samplerate = 44100
@@ -580,141 +649,188 @@ elif i_page == 'Generate Music':
             
             audio_file = open('generate_music.wav', 'rb')
             audio_bytes = audio_file.read()
-            st.audio(audio_bytes, format='audio/wav')
+            music1.audio(audio_bytes, format='audio/wav')
     
     
-    #st.write(get_note_freq(S_freq))
-    
-    
-    # SS_freq= S_freq * 2
-    
-    # G_freq= (5* S_freq)/4
-    # if G_freq > SS_freq:
-    #     G_freq= G_freq/2
-    # st.sidebar.text_input("G freq: ", G_freq)
-    
-    # P_freq= (6* G_freq)/5
-    # if P_freq > SS_freq:
-    #     GPfreq= P_freq/2
-    # st.sidebar.text_input("P_freq: ", P_freq)
-    
-    # N_freq= (5* P_freq)/4
-    # if N_freq > SS_freq:
-    #     N_freq= N_freq/2
-    # st.sidebar.text_input("N_freq: ", N_freq)
-    
-    # R_freq= (6* N_freq)/5
-    # if R_freq > SS_freq:
-    #     R_freq= R_freq/2
-    # st.sidebar.text_input("R_freq: ", R_freq)
-    
-    # m_freq= (4* SS_freq)/6
-    # st.sidebar.text_input("m_freq: ", m_freq)
-    
-    # D_freq= (5* SS_freq)/6
-    # st.sidebar.text_input("D_freq: ", D_freq)
-    
-    # g_freq= (6* S_freq)/5
-    # st.sidebar.text_input("g_freq: ", g_freq)
-    
-    # n_freq= (3* g_freq)/2
-    # st.sidebar.text_input("n_freq: ", n_freq)
-    
-    # M_freq= (3* N_freq)/2
-    # if M_freq > SS_freq:
-    #     M_freq= M_freq/2
-    # st.sidebar.text_input("M_freq: ", M_freq)
-    
-    # r_freq= (4* m_freq)/5
-    # st.sidebar.text_input("r_freq: ", r_freq)
-    
-    
-    ##################################### PLot music graph #####################
-    
-    #mus1, mus2= st.columns(2)
-    
-    # fig = plt.figure(figsize = (7, 7))
-    # plt.axhline(y = S_freq, color = 'lime', linestyle = '-', label = "Sa")
-    # plt.axhline(y = r_freq, color = 'indianred', linestyle = '-', label = "re")
-    # plt.axhline(y = R_freq, color = 'darkred', linestyle = '-', label = "Re")
-    # plt.axhline(y = g_freq, color = 'coral', linestyle = '-', label = "ga")
-    # plt.axhline(y = G_freq, color = 'darkorange', linestyle = '-', label = "Ga")
-    # plt.axhline(y = m_freq, color = 'yellowgreen', linestyle = '-', label = "ma")
-    # plt.axhline(y = M_freq, color = 'darkolivegreen', linestyle = '-', label = "Ma")
-    # plt.axhline(y = P_freq, color = 'gold', linestyle = '-', label = "Pa")
-    # #plt.axhline(y = d_freq, color = 'turquoise', linestyle = '-', label = "dha")
-    # plt.axhline(y = D_freq, color = 'teal', linestyle = '-', label = "Dha")
-    # plt.axhline(y = n_freq, color = 'hotpink', linestyle = '-', label = "ni")
-    # plt.axhline(y = N_freq, color = 'crimson', linestyle = '-', label = "Ni")
-    # plt.axhline(y = SS_freq, color = 'darkgreen', linestyle = '-', label = "SS")
-    
-    # # adding axis labels    
-    # plt.xlabel('x - axis')
-    # plt.ylabel('y - axis')
-      
-    # # plotting the legend
-    # plt.legend(bbox_to_anchor = (1.0, 1), loc="center left", borderaxespad=0)
-    
-    # mus1.pyplot(fig) 
-    
-    
-    #st.text_input('Write sequence', "")
-    # i_note_list= mus2.multiselect('Generate sequence', ['Sa', 're', 'Re', 'ga', 'Ga', 'ma', 'Ma', 'Pa', 'Dha', 'ni', 'Ni', 'SSa'])
-    # if len(i_note_list) >0 :
-        
-    #     if mus2.button("Generate music"):
-            
-    #         notes_freq_dict={
-    #             'Sa': S_freq, 're': r_freq, 
-    #             'Re': R_freq, 'ga': g_freq, 'Ga': G_freq, 
-    #             'ma': m_freq, 'Ma': M_freq, 
-    #             'Pa': P_freq, 'Dha': D_freq, 
-    #             'ni': n_freq, 'Ni': N_freq, 'SSa': SS_freq
-                
-    #             }
-            
-    #         note_list=[]
-    #         for i_note in i_note_list:
-    #             note_list.append(notes_freq_dict[i_note])
-                
-            
-    #         #note_list= [S_freq, r_freq, G_freq, m_freq, P_freq, D_freq, n_freq, SS_freq]
-    #         #note_list= [S_freq, r_freq, G_freq, S_freq, r_freq, G_freq, m_freq, G_freq]
-    #         notelist_final=[]
-    #         for i_note in note_list:
-    #             for i in range(10):
-    #                 notelist_final.append(i_note)
-                    
-            
-            
-            
-    #         amplitude = 4096*3 #arbitrary value
-    #         duration=0.1 #this is from the data: sample_data['Time'][5]-sample_data['Time'][4]
-    #         samplerate = 44100
-    #         original_freq= notelist_final
-    #         # fit_freq= df_result['Amplitude_fit'].values.tolist()
-            
-    #         song=[]
-    #         p = 0
-    #         for note in original_freq:
-    #             t = np.linspace(0, duration, int(samplerate * duration))
-    #             wave = amplitude * np.sin(2 * np.pi * note * t + p) # seems like we can add our sample frequency here to get the wave
-    #             song.append(wave)
-    #             p = np.mod(2*np.pi*note*duration + p,2*np.pi) #to make sure that the next wave starts with the same phase where the previous wave ended
-        
-    #         song = np.concatenate(song) 
-    #         data = song.astype(np.int16)
-    #         data = data * (16300/np.max(data))
-    #         write('generate_music.wav', samplerate, data.astype(np.int16))
-            
-    #         audio_file = open('generate_music.wav', 'rb')
-    #         audio_bytes = audio_file.read()
-    #         mus2.audio(audio_bytes, format='audio/wav')
-    
-    
-    
-    
+######################################################### Bezier Curve ##################################
 
-
-          
+elif i_page=='Bezier Curve':
+    st.write("Bezier")
+    t_points = np.arange(0, 1, 0.01) #................................. Creates an iterable list from 0 to 1.
+    points1 = np.array([[0, 0], [0, 5],[1,2],[1,5], [2, 2]]) #.... Creates an array of coordinates.
+    curve1 = Bezier.Curve(t_points, points1) #......................... Returns an array of coordinates.
+    
+    fig = plt.figure(figsize = (9, 7))
+    plt.plot(
+     	curve1[:, 0],   # x-coordinates.
+     	curve1[:, 1]    # y-coordinates.
+    )
+    plt.plot(
+     	points1[:, 0],  # x-coordinates.
+     	points1[:, 1],  # y-coordinates.
+     	'ro:'           # Styling (red, circles, dotted).
+    )
+    plt.grid()
+    st.pyplot(fig) 
+    
+    import matplotlib.animation as animation
+    from matplotlib.widgets import Slider, Button
+    import matplotlib as mpl
+    from matplotlib import pyplot as plt
+    import scipy.interpolate as inter
+    import numpy as np
+    
+    
+    
+    func = lambda x: 0.1*x**2
+    
+    #get a list of points to fit a spline to as well
+    N = 10
+    xmin = 0 
+    xmax = 10 
+    x = np.linspace(xmin,xmax,N)
+    
+    #spline fit
+    yvals = func(x)
+    spline = inter.InterpolatedUnivariateSpline (x, yvals)
+    
+    #figure.subplot.right
+    mpl.rcParams['figure.subplot.right'] = 0.8
+    
+    #set up a plot
+    fig,axes = plt.subplots(1,1,figsize=(9.0,8.0),sharex=True)
+    ax1 = axes
+    
+    
+    pind = None #active point
+    epsilon = 5 #max pixel distance
+    
+    def update(val):
+        global yvals
+        global spline
+        # update curve
+        for i in np.arange(N):
+          yvals[i] = sliders[i].val 
+        l.set_ydata(yvals)
+        spline = inter.InterpolatedUnivariateSpline (x, yvals)
+        m.set_ydata(spline(X))
+        # redraw canvas while idle
+        fig.canvas.draw_idle()
+    
+    def reset(event):
+        global yvals
+        global spline
+        #reset the values
+        yvals = func(x)
+        for i in np.arange(N):
+          sliders[i].reset()
+        spline = inter.InterpolatedUnivariateSpline (x, yvals)
+        l.set_ydata(yvals)
+        m.set_ydata(spline(X))
+        # redraw canvas while idle
+        fig.canvas.draw_idle()
+    
+    def button_press_callback(event):
+        'whenever a mouse button is pressed'
+        global pind
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+        #print(pind)
+        pind = get_ind_under_point(event)    
+    
+    def button_release_callback(event):
+        'whenever a mouse button is released'
+        global pind
+        if event.button != 1:
+            return
+        pind = None
+    
+    def get_ind_under_point(event):
+        'get the index of the vertex under point if within epsilon tolerance'
+    
+        # display coords
+        #print('display x is: {0}; display y is: {1}'.format(event.x,event.y))
+        t = ax1.transData.inverted()
+        tinv = ax1.transData 
+        xy = t.transform([event.x,event.y])
+        #print('data x is: {0}; data y is: {1}'.format(xy[0],xy[1]))
+        xr = np.reshape(x,(np.shape(x)[0],1))
+        yr = np.reshape(yvals,(np.shape(yvals)[0],1))
+        xy_vals = np.append(xr,yr,1)
+        xyt = tinv.transform(xy_vals)
+        xt, yt = xyt[:, 0], xyt[:, 1]
+        d = np.hypot(xt - event.x, yt - event.y)
+        indseq, = np.nonzero(d == d.min())
+        ind = indseq[0]
+    
+        #print(d[ind])
+        if d[ind] >= epsilon:
+            ind = None
+        
+        #print(ind)
+        return ind
+    
+    def motion_notify_callback(event):
+        'on mouse movement'
+        global yvals
+        if pind is None:
+            return
+        if event.inaxes is None:
+            return
+        if event.button != 1:
+            return
+        
+        #update yvals
+        #print('motion x: {0}; y: {1}'.format(event.xdata,event.ydata))
+        yvals[pind] = event.ydata 
+    
+        # update curve via sliders and draw
+        sliders[pind].set_val(yvals[pind])
+        fig.canvas.draw_idle()
+    
+    X = np.arange(0,xmax+1,0.1)
+    ax1.plot (X, func(X), 'k--', label='original')
+    l, = ax1.plot (x,yvals,color='k',linestyle='none',marker='o',markersize=8)
+    m, = ax1.plot (X, spline(X), 'r-', label='spline')
+    
+    
+    
+    ax1.set_yscale('linear')
+    ax1.set_xlim(0, xmax)
+    ax1.set_ylim(0,xmax)
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('y')
+    ax1.grid(True)
+    ax1.yaxis.grid(True,which='minor',linestyle='--')
+    ax1.legend(loc=2,prop={'size':22})
+    
+    sliders = []
+    
+    for i in np.arange(N):
+    
+        axamp = plt.axes([0.84, 0.8-(i*0.05), 0.12, 0.02])
+        # Slider
+        s = Slider(axamp, 'p{0}'.format(i), 0, 10, valinit=yvals[i])
+        sliders.append(s)
+    
+        
+    for i in np.arange(N):
+        #samp.on_changed(update_slider)
+        sliders[i].on_changed(update)
+    
+    axres = plt.axes([0.84, 0.8-((N)*0.05), 0.12, 0.02])
+    bres = Button(axres, 'Reset')
+    bres.on_clicked(reset)
+    
+    fig.canvas.mpl_connect('button_press_event', button_press_callback)
+    fig.canvas.mpl_connect('button_release_event', button_release_callback)
+    fig.canvas.mpl_connect('motion_notify_event', motion_notify_callback)
+    
+    st.pyplot(fig) 
+    
+    
+    
+    
     
