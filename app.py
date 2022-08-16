@@ -51,10 +51,10 @@ if i_page == 'Curve fitting':
     x= df['Time'].values.tolist()
     y= df['Amplitude'].values.tolist()
     
-    
+    time_frame = st.slider( 'Select time frame', min(x), max(x), (min(x) + 0.25, min(x) + 0.75))
     col1, col2= st.columns(2)
     
-    time_frame = col1.slider( 'Select time frame', min(x), max(x), (min(x) + 0.25, min(x) + 0.75))
+    
     #time_frame = st.slider( 'Select time frame', 0, len(df), ( 0, len(df)))
     print(time_frame)
     
@@ -275,11 +275,12 @@ if i_page == 'Curve fitting':
             fig = plt.figure(figsize=(4, 2))
             #plt.scatter(x_scaled, df.Amplitude, c='k', label='Amplitude')
             y_scaled = [float(i)/max(model(polyline)) for i in model(polyline)]
+            x_scaled= [float(i)/max(x_scaled) for i in x_scaled]
             plt.plot(x_scaled, y_scaled, color='red', label='Scaled')
             plt.legend(fontsize=4)
             col1.pyplot(fig)
             
-            st.write(2**5)
+            st.write(model(polyline))
                 
             
                 
@@ -375,14 +376,21 @@ if i_page == 'Curve fitting':
     
             df= df.reset_index()
             
-            ym= round(df['Amplitude'].mean(), 2)
-            xm= round(df['Time'].mean(), 2)
+            # ym= round(df['Amplitude'].mean(), 2)
+            # xm= round(df['Time'].mean(), 2)
             
             y2= round(df['Amplitude'].iloc[-1], 2)
             x2= round(df['Time'].iloc[-1], 2)
             
             y1= round(df['Amplitude'].iloc[0], 2)
             x1= round(df['Time'].iloc[-0], 2)
+            
+            ym= round((y2+ y1)/ 2, 2)
+            xm= round((x2+ x1)/ 2, 2)
+            
+            # st.write(x1, y1)
+            # st.write(x2, y2)
+            # st.write(xm, ym)
             
             
             
@@ -393,28 +401,36 @@ if i_page == 'Curve fitting':
             y_cos=[]
             
             for ix in x:
-                y_sin.append( math.sin(((ix - xm)*(3.14/2)/2)*(1/(x2-xm))) *(y2-ym) + ym) 
-                y_cos.append( math.sin(((ix - x1)*(3.14/2)/2)*(1/(x2-x1))) *(y2-y1) + y1)
+                #y_sin.append( math.sin(((ix - xm)*(3.14/2)/2)*(1/(x2-xm))) *(y2-ym) + ym) 
+                #y_cos.append( math.sin(((ix - x1)*(3.14/2)/2)*(1/(x2-x1))) *(y2-y1) + y1)
                 
+                y_sin_temp= math.sin( (ix- xm)* (3.14/2) *  (1/ (x2- xm))) 
+                y_sin.append((y_sin_temp * (y2-ym)) + ym)
+                
+                #y_cos_temp= math.sin( (ix- xm)* (3.14/2) *  (1/ (x2- xm))) 
+                #y_sin.append((y_sin_temp * (y2-ym)) + ym)
+            
+                
+            #st.write(len(x), len(y_sin))
             fig = plt.figure(figsize=(4, 2))
             plt.scatter(x, y, c='k', label='Amplitude')
             plt.plot(x, y_sin, '--', color ='blue', label ="Sine wave")
-            plt.plot(x, y_cos, '--', color ='green', label ="Cosine wave")
+            #plt.plot(x, y_cos, '--', color ='green', label ="Cosine wave")
             plt.legend(fontsize=4)
             col1.pyplot(fig)
             
             
             df_fit= df.copy()
             df_fit['Sine wave']= y_sin
-            df_fit['Cosine wave']= y_cos
+            #df_fit['Cosine wave']= y_cos
             #col2.write(df_fit)
             rmse_sin= mean_squared_error(df_fit[['Amplitude']], df_fit[['Sine wave']], squared=False)
-            rmse_cos= mean_squared_error(df_fit[['Amplitude']], df_fit[['Cosine wave']], squared=False)
+            #rmse_cos= mean_squared_error(df_fit[['Amplitude']], df_fit[['Cosine wave']], squared=False)
             
             
             df_rmse= pd.DataFrame(columns= ['Wave equation', 'RMSE'])
-            df_rmse['Wave equation']= ['Sine wave', 'Cosine wave']
-            df_rmse['RMSE']= [rmse_sin, rmse_cos]
+            df_rmse['Wave equation']= ['Sine wave']
+            df_rmse['RMSE']= [rmse_sin]
             
             best_rmse= df_rmse['RMSE'].min()
             best_wave= df_rmse[df_rmse['RMSE']== best_rmse]['Wave equation'].values.tolist()[0]
